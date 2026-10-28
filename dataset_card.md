@@ -23,7 +23,8 @@ Why roles and not left/right team: the `left`/`right` label in GSR is the side o
 | Corrupt / unreadable frames | Decode check on every sampled frame | 0 frames |
 | Invalid geometry | Box must be non-empty and inside the image | 0 boxes |
 | Frames without people | Frames with no retained box dropped | 0 frames |
-| Tiny crops and exact duplicates | Min side 24 px; SHA-256 of crop resized to 48x48 | 1,592 crops (combined) |
+| Tiny crops | Min side 24 px | 1,592 crops |
+| Exact duplicates | SHA-256 of crop resized to 48x48 over 21,794 unique crops | 0 same-role, 0 conflicting |
 
 ## Split (leakage-safe, by match, seed 42)
 | Split | Matches | Crops | Player / goalkeeper / referee |
@@ -35,7 +36,7 @@ Why roles and not left/right team: the `left`/`right` label in GSR is the side o
 An assertion checks that no match appears in two splits.
 
 ## Label audit
-50 crops reviewed manually, 0 errors. Exact Clopper-Pearson 95% upper bound on the label error rate: 7.11% (two-sided), 5.82% (one-sided).
+200 random crops (all splits, seed 42) reviewed manually, 0 errors. Exact Clopper-Pearson 95% upper bound on the label error rate: 1.83% (two-sided), 1.49% (one-sided). Audited IDs saved in `label_audit_200.csv`. (Earlier pilot: 50 crops, 0 errors.)
 
 ## Preprocessing and augmentation
 Resize to 224x224, ImageNet normalisation. Training only: horizontal flip, colour jitter (brightness/contrast/saturation 0.15, hue 0.04).
