@@ -16,10 +16,9 @@ Phase 1 builds the data foundation and a **player-role classifier** (player / go
 | Item | Link |
 |---|---|
 | Main notebook (code + outputs) | [`football_phase1_Final.ipynb`](football_phase1_Final.ipynb) |
-| Independent rerun (label audit, top-2, reliability, W&B sync) | [`phase1_rerun_muteb.ipynb`](phase1_rerun_muteb.ipynb) |
 | Dataset card | [`dataset_card.md`](dataset_card.md) |
 | Model card (acceptance criteria) | [`model_card.md`](model_card.md) |
-| W&B project | https://wandb.ai/muteb-mutairi-kaust/cv-football-phase1-kaggle |
+| W&B project | https://wandb.ai/muteb-mutairi-kaust/CV-Football--P6 |
 | Data source | https://huggingface.co/datasets/SoccerNet/SN-GSR-2025 |
 
 ## Headline result
@@ -37,9 +36,9 @@ Held-out test match, 1,763 crops, 224×224 input:
 |---|---|
 | Source | SN-GSR-2025 train: 57 sequences of 30 s, 48 processed, 3 independent matches (`game_id` 4, 6, 9) |
 | Sampling | 1 frame per second (every 25th frame), max 35 per sequence → 1,440 frames, 23,386 person boxes |
-| Cleaning | 0 corrupt frames, 0 invalid boxes, 1,592 tiny crops removed (< 24 px), 0 exact duplicates (SHA-256 over 21,794 unique crops) |
+| Cleaning | 0 corrupt frames, 0 invalid boxes, 1,592 crops removed as tiny (< 24 px) or exact duplicates (SHA-256) |
 | Final dataset | 7,752 role crops after per-class caps |
-| Label audit | 200 random crops checked by hand: 0 errors, 95% upper bound 1.83% |
+| Label checks | Automatic (valid role, box geometry, one match per split, per-role counts); a manual 200-crop audit is planned |
 
 **Leakage-safe split:** one whole match per split (seed 42); an assertion checks that no match appears in two splits.
 
@@ -52,14 +51,12 @@ Held-out test match, 1,763 crops, 224×224 input:
 ## 3. Classification (M2–M3)
 Five ImageNet backbones were screened on validation; ConvNeXt-Tiny ranked first. Three runs were then trained (AdamW, class-weighted cross-entropy, early stopping on validation loss). The model is chosen on validation macro-F1; the test match is used once at the end.
 
-| Model (test match, 224 px, argmax) | Accuracy | 95% CI | Top-2 | Macro-F1 | ECE |
-|---|---|---|---|---|---|
-| Scratch CNN | 52.98% | 50.65–55.30 | 73.57%* | 49.95% | 0.384 |
-| Frozen ConvNeXt-Tiny | 89.96% | 88.47–91.28 | 96.88% | 80.47% | 0.022 |
-| Fully fine-tuned ConvNeXt-Tiny | 77.99% | 76.00–79.86 | 99.32% | 74.25% | 0.189 |
-| **Frozen + goalkeeper ×2.70** | **91.09%** | 89.67–92.34 | – | **85.05%** | – |
-
-\*Top-2 from the independent rerun checkpoints (rerun scratch top-1 is 53.32%).
+| Model (test match, 224 px, argmax) | Accuracy | 95% CI | Macro-F1 | ECE |
+|---|---|---|---|---|
+| Scratch CNN | 52.98% | 50.65–55.30 | 49.95% | 0.384 |
+| Frozen ConvNeXt-Tiny | 89.96% | 88.47–91.28 | 80.47% | 0.022 |
+| Fully fine-tuned ConvNeXt-Tiny | 77.99% | 76.00–79.86 | 74.25% | 0.189 |
+| **Frozen + goalkeeper ×2.70** | **91.09%** | 89.67–92.34 | **85.05%** | – |
 
 **Main findings**
 - Referees are recognised perfectly (658/658).
@@ -75,11 +72,11 @@ Five ImageNet backbones were screened on validation; ConvNeXt-Tiny ranked first.
 - Seed 42 for Python, NumPy, PyTorch and CUDA.
 - Exact package versions written to `requirements-lock.txt`; see also `requirements.txt`.
 - Runs are tracked in W&B (link above).
-- **Independent rerun:** a second team member reran the notebook on a separate Kaggle account. The selected model reproduced exactly (1,606/1,763 correct, identical confusion matrices); the scratch CNN differed by 0.3 points (GPU non-determinism).
+- **Independent rerun:** a second team member reran the notebook on a separate Kaggle account; its runs are in the W&B project. The frozen and fully fine-tuned models reproduced the test results exactly; the scratch CNN differed by 0.3 points (GPU non-determinism).
 
 ## How to reproduce
 1. Open `football_phase1_Final.ipynb` in Kaggle with a GPU and internet enabled.
 2. Run all cells. The notebook downloads the data, builds the crops, splits by match, trains with fixed seeds and evaluates the test match once.
-3. On Kaggle's 20 GB disk, delete `train.zip` after extraction (the `# Free disk space` cell in `phase1_rerun_muteb.ipynb`).
+3. On Kaggle's 20 GB disk, delete `train.zip` after extraction to free space.
 
 Data, crops and model weights are not committed (see `.gitignore`).
