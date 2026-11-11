@@ -15,7 +15,9 @@ Phase 1 builds the data foundation and a **player-role classifier** (player / go
 ## Links
 | Item | Link |
 |---|---|
-| Main notebook (code + outputs) | [`football_phase1_Final.ipynb`](football_phase1_Final.ipynb) |
+| Main notebook (revised run, all report numbers) | [`football_phase1_Final_v2.ipynb`](football_phase1_Final_v2.ipynb) |
+| Original run (25 Oct, first submission) | [`football_phase1_Final.ipynb`](football_phase1_Final.ipynb) |
+| Pinned package versions | [`requirements-lock.txt`](requirements-lock.txt) |
 | Dataset card | [`dataset_card.md`](dataset_card.md) |
 | Model card (acceptance criteria) | [`model_card.md`](model_card.md) |
 | W&B project | https://wandb.ai/muteb-mutairi-kaust/CV-Football--P6 |
@@ -36,9 +38,9 @@ Held-out test match, 1,763 crops, 224×224 input:
 |---|---|
 | Source | SN-GSR-2025 train: 57 sequences of 30 s, 48 processed, 3 independent matches (`game_id` 4, 6, 9) |
 | Sampling | 1 frame per second (every 25th frame), max 35 per sequence → 1,440 frames, 23,386 person boxes |
-| Cleaning | 0 corrupt frames, 0 invalid boxes, 1,592 crops removed as tiny (< 24 px) or exact duplicates (SHA-256) |
+| Cleaning | 0 corrupt frames, 0 invalid boxes, 1,592 tiny crops removed (< 24 px), 0 exact duplicates (SHA-256 over 21,794 unique crops); near-duplicate check: 15 pairs, none leaking between splits |
 | Final dataset | 7,752 role crops after per-class caps |
-| Label checks | Automatic (valid role, box geometry, one match per split, per-role counts); a manual 200-crop audit is planned |
+| Label audit | 200 random crops checked by hand in the notebook: 0 errors, 95% upper bound 1.83% |
 
 **Leakage-safe split:** one whole match per split (seed 42); an assertion checks that no match appears in two splits.
 
@@ -49,14 +51,14 @@ Held-out test match, 1,763 crops, 224×224 input:
 | Test | 1,763 | 875 / 230 / 658 |
 
 ## 3. Classification (M2–M3)
-Five ImageNet backbones were screened on validation; ConvNeXt-Tiny ranked first. Three runs were then trained (AdamW, class-weighted cross-entropy, early stopping on validation loss). The model is chosen on validation macro-F1; the test match is used once at the end.
+Five ImageNet backbones were screened on validation; ConvNeXt-Tiny ranked first. Three runs were then trained (AdamW, class-weighted cross-entropy, early stopping on validation loss). The frozen model is selected on validation macro-F1. Note: this between-run rule was fixed after the first test results were seen; the notebook's original validation-loss ranking would pick the fully fine-tuned run (test accuracy 77.99%).
 
-| Model (test match, 224 px, argmax) | Accuracy | 95% CI | Macro-F1 | ECE |
-|---|---|---|---|---|
-| Scratch CNN | 52.98% | 50.65–55.30 | 49.95% | 0.384 |
-| Frozen ConvNeXt-Tiny | 89.96% | 88.47–91.28 | 80.47% | 0.022 |
-| Fully fine-tuned ConvNeXt-Tiny | 77.99% | 76.00–79.86 | 74.25% | 0.189 |
-| **Frozen + goalkeeper ×2.70** | **91.09%** | 89.67–92.34 | **85.05%** | – |
+| Model (test match, 224 px, argmax) | Accuracy | 95% CI (Wilson) | Top-2 | Macro-F1 | ECE |
+|---|---|---|---|---|---|
+| Scratch CNN | 53.03% | 50.70–55.36 | 73.85% | 49.48% | 0.383 |
+| Frozen ConvNeXt-Tiny | 89.96% | 88.47–91.28 | 96.88% | 80.47% | 0.022 |
+| Fully fine-tuned ConvNeXt-Tiny | 77.99% | 76.00–79.86 | 99.32% | 74.25% | 0.189 |
+| **Frozen + goalkeeper ×2.70** | **91.09%** | 89.67–92.34 | 98.13% | **85.05%** | 0.016 |
 
 **Main findings**
 - Referees are recognised perfectly (658/658).
@@ -70,13 +72,13 @@ Five ImageNet backbones were screened on validation; ConvNeXt-Tiny ranked first.
 ## 4. Reproducibility
 - One `CFG` dictionary holds every setting and is saved as `config.json` with each run.
 - Seed 42 for Python, NumPy, PyTorch and CUDA.
-- Exact package versions written to `requirements-lock.txt`; see also `requirements.txt`.
+- Exact package versions in [`requirements-lock.txt`](requirements-lock.txt) (committed); see also `requirements.txt`.
 - Runs are tracked in W&B (link above).
-- **Independent rerun:** a second team member reran the notebook on a separate Kaggle account; its runs are in the W&B project. The frozen and fully fine-tuned models reproduced the test results exactly; the scratch CNN differed by 0.3 points (GPU non-determinism).
+- **Independent rerun:** the original run (25 Oct) and the revised run by a second team member on a separate Kaggle account (11 Nov, runs ending `20261111T171659Z` in W&B) give identical test results for the frozen and fully fine-tuned models; the scratch CNN differs by 0.05 points (GPU non-determinism).
 
 ## How to reproduce
-1. Open `football_phase1_Final.ipynb` in Kaggle with a GPU and internet enabled.
+1. Open `football_phase1_Final_v2.ipynb` in Kaggle with a GPU and internet enabled.
 2. Run all cells. The notebook downloads the data, builds the crops, splits by match, trains with fixed seeds and evaluates the test match once.
-3. On Kaggle's 20 GB disk, delete `train.zip` after extraction to free space.
+3. At the label-audit cell, review the 200 crops and list any wrong labels in `WRONG`.
 
 Data, crops and model weights are not committed (see `.gitignore`).

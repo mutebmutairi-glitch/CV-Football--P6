@@ -23,7 +23,9 @@ Why roles and not left/right team: the `left`/`right` label in GSR is the side o
 | Corrupt / unreadable frames | Decode check on every sampled frame | 0 frames |
 | Invalid geometry | Box must be non-empty and inside the image | 0 boxes |
 | Frames without people | Frames with no retained box dropped | 0 frames |
-| Tiny crops and exact duplicates | Min side 24 px; SHA-256 of crop resized to 48x48; a duplicate across two matches stops the pipeline | 1,592 crops (combined) |
+| Tiny crops | Min side 24 px | 1,592 crops |
+| Exact duplicates | SHA-256 of crop resized to 48x48 over 21,794 unique crops; a duplicate across two matches stops the pipeline | 0 same-role, 0 conflicting |
+| Near duplicates (check only) | 64-bit dHash, Hamming distance <= 4 | 15 pairs: 14 within one match and split; 1 across splits, inspected: two different people (hash collision), not leakage |
 
 ## Split (leakage-safe, by match, seed 42)
 | Split | Matches | Crops | Player / goalkeeper / referee |
@@ -34,8 +36,8 @@ Why roles and not left/right team: the `left`/`right` label in GSR is the side o
 
 An assertion checks that no match appears in two splits.
 
-## Label checks
-Role labels come directly from the SoccerNet annotations. The notebook checks them automatically (valid role, box geometry, one match per split, per-role counts per split; `automatic_crop_audit.csv`). A manual label audit with an error-rate bound is not part of the submitted notebook; auditing 200 random crops is planned.
+## Label audit
+200 random crops (all splits, seed 42) reviewed manually in the notebook `football_phase1_Final_v2.ipynb`: 0 errors. Exact Clopper-Pearson 95% upper bound on the label-error rate: 1.83% (two-sided), 1.49% (one-sided). Decisions saved in `label_audit_200.csv`. The notebook also checks labels automatically (valid role, box geometry, one match per split, per-role counts; `automatic_crop_audit.csv`).
 
 ## Preprocessing and augmentation
 Resize to 224x224, ImageNet normalisation. Training only: horizontal flip, colour jitter (brightness/contrast/saturation 0.15, hue 0.04).
